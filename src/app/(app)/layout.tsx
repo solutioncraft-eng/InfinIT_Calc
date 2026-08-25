@@ -25,7 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen">
       <header className="border-b border-mist bg-white">
-        <div className="mx-auto flex max-w-content items-center gap-6 px-6 py-3">
+        <div className="mx-auto flex max-w-content items-center gap-6 px-6 py-3 md:px-10 lg:px-16">
           <Link href="/calculator" className="shrink-0">
             <Image src="/infinit-logo.png" alt="infinIT" width={96} height={66} priority />
           </Link>
@@ -68,9 +68,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         Internal use only · tool costs and margins are confidential
       </div>
 
-      <main className="mx-auto max-w-content px-6 py-8">{children}</main>
+      <main className="mx-auto max-w-content px-6 py-8 md:px-10 lg:px-16">{children}</main>
 
-      <footer className="mx-auto max-w-content px-6 pb-10 text-[12px] text-slate">
+      <footer className="mx-auto max-w-content px-6 pb-10 text-[12px] text-slate md:px-10 lg:px-16">
         infinIT Managed Services · Agreement Calculator {APP_VERSION} · Quarterly true-up recommended ·
         Mailbox count assumed equal to user count
       </footer>
