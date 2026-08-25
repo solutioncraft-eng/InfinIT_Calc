@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# simulation output
+monte-carlo-report.pdf
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

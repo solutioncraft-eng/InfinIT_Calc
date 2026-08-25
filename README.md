@@ -124,7 +124,19 @@ npm run typecheck    # tsc --noEmit
 npm run build        # production build
 npm run db:migrate   # prisma migrate deploy (production)
 npm run db:purge     # delete quote requests past their retention date
+npm run sim:pricing  # Monte Carlo sweep of the pricing engine -> PDF report
 ```
+
+### Pricing engine simulation
+
+`npm run sim:pricing` prices tens of thousands of randomised quotes through the same engine the calculator
+uses, asserts the model's invariants on every trial (never below cost, floor honoured unless overridden,
+Pinnacle never cheaper than Advantage, every off-policy lever raises a review trigger, monotonic in users and
+margin) and writes a branded PDF report with the pass/fail table, trigger frequencies and rate distributions.
+It exits non-zero if any invariant is violated, so it also works as a regression gate. Nothing is written to
+the database. Environment overrides: `MC_TRIALS` (default 25000), `MC_SEED` (default 20260825, sampling is
+seeded so a report reproduces exactly), `MC_OUT` (default `monte-carlo-report.pdf`). The active published
+pricing version is used when a database is reachable, otherwise the seed version.
 
 ## Deployment notes
 
