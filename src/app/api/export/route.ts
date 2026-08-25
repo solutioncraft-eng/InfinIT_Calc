@@ -113,7 +113,16 @@ export async function POST(request: Request) {
 
   const logo = await brandLogo();
   const props = { result, tier: payload.tier, clientName, notes, stamp, logo };
-  const { bytes, checksum } = await renderPdf(buildDocument(payload.docType, props));
+
+  let bytes: Buffer;
+  let checksum: string;
+  try {
+    ({ bytes, checksum } = await renderPdf(buildDocument(payload.docType, props)));
+  } catch (error) {
+    console.error("PDF render failed", error);
+    const detail = error instanceof Error ? error.message : "unknown error";
+    return NextResponse.json({ error: `The PDF could not be rendered: ${detail}` }, { status: 500 });
+  }
 
   await prisma.exportRecord.create({
     data: {
