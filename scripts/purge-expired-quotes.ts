@@ -3,6 +3,7 @@
  * Audit events and export records survive — they hold no calculator result.
  * Run on a schedule (cron / platform scheduler): `npm run db:purge`.
  */
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();

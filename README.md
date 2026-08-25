@@ -76,6 +76,22 @@ npm run dev
 The seed prints a temporary administrator password unless `SEED_ADMIN_PASSWORD` is set. Sign in at
 `/login`.
 
+### Creating an administrator
+
+Run this from the deploy shell (or locally) rather than putting a password in config:
+
+```bash
+npm run admin:create -- someone@infinit.us "Their Name"
+```
+
+It creates the account (or promotes an existing one), prints a one-time temporary password, and forces a
+change at first sign-in. To choose the password yourself, pipe it in:
+`printf '%s' 'the-password' | npm run admin:create -- someone@infinit.us "Their Name"`.
+
+Everyone else is added from **Admin → Users**, which emails a temporary password when SMTP is configured and
+otherwise shows it once for you to hand over. Anyone can change their own password at `/account/password`;
+accounts carrying a temporary password are sent there until they do.
+
 ### Environment variables
 
 | Variable                              | Required | Purpose                                                     |

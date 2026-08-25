@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { canAdminister, canReview, requireUser } from "@/lib/auth";
 import { APP_VERSION } from "@/lib/version";
@@ -8,6 +9,12 @@ import { logout } from "./actions";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
+  const account = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { mustReset: true },
+  });
+  if (account?.mustReset) redirect("/account/password");
+
   const pendingReviews = canReview(user.role)
     ? await prisma.quoteRequest.count({ where: { status: "PENDING" } })
     : 0;
@@ -45,6 +52,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <p className="text-[13px] font-semibold leading-tight text-navy">{user.name}</p>
               <p className="font-mono text-[11px] uppercase tracking-eyebrow text-slate">{user.role}</p>
             </div>
+            <Link href="/account/password" className="text-[13px] font-medium text-slate hover:text-orange">
+              Password
+            </Link>
             <form action={logout}>
               <button type="submit" className="text-[13px] font-medium text-slate hover:text-orange">
                 Sign out
