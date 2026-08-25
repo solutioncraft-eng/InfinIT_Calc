@@ -6,13 +6,26 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { hashPassword, requireRole } from "@/lib/auth";
-import { appUrl, sendMail } from "@/lib/email";
+import { appUrl, sendMail, type MailResult } from "@/lib/email";
 
 export interface UserState {
   error?: string;
   ok?: string;
-  /// Shown once, when email is not configured and the admin must hand it over.
+  /// Shown once, when the email could not be delivered and the admin must hand it over.
   tempPassword?: string;
+}
+
+/**
+ * Turns a failed send into an explanation the admin can act on — a rejected
+ * message (unverified sending domain, bad address) reads very differently from
+ * an unconfigured mailer.
+ */
+function handoverMessage(result: MailResult, email: string): string {
+  if (result.sent) return "";
+  if (result.reason === "unconfigured") {
+    return `Email is not configured — hand this temporary password to ${email} securely.`;
+  }
+  return `Email to ${email} was rejected${result.detail ? `: ${result.detail}` : "."} Hand this temporary password over securely.`;
 }
 
 const createSchema = z.object({
@@ -67,9 +80,9 @@ export async function createUser(_prev: UserState, formData: FormData): Promise<
   });
 
   revalidatePath("/admin/users");
-  return mailed
+  return mailed.sent
     ? { ok: `${email} created — a temporary password was emailed.` }
-    : { ok: `${email} created. Email is not configured, so hand this password over securely.`, tempPassword: password };
+    : { ok: `${email} created. ${handoverMessage(mailed, email)}`, tempPassword: password };
 }
 
 export async function updateUser(_prev: UserState, formData: FormData): Promise<UserState> {
@@ -152,12 +165,9 @@ export async function resendWelcome(_prev: UserState, formData: FormData): Promi
   });
 
   revalidatePath("/admin/users");
-  return mailed
+  return mailed.sent
     ? { ok: `Welcome email resent to ${user.email} with a new temporary password.` }
-    : {
-        ok: `Email is not configured — hand this temporary password to ${user.email} securely.`,
-        tempPassword: password,
-      };
+    : { ok: handoverMessage(mailed, user.email), tempPassword: password };
 }
 
 export async function resetPassword(_prev: UserState, formData: FormData): Promise<UserState> {
@@ -190,7 +200,7 @@ export async function resetPassword(_prev: UserState, formData: FormData): Promi
   });
 
   revalidatePath("/admin/users");
-  return mailed
+  return mailed.sent
     ? { ok: `A temporary password was emailed to ${user.email}.` }
-    : { ok: `Temporary password for ${user.email} — hand it over securely.`, tempPassword: password };
+    : { ok: handoverMessage(mailed, user.email), tempPassword: password };
 }
