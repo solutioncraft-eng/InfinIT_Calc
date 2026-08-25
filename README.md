@@ -96,7 +96,8 @@ accounts carrying a temporary password are sent there until they do.
 
 | Variable                              | Required | Purpose                                                     |
 | ------------------------------------- | -------- | ----------------------------------------------------------- |
-| `DATABASE_URL`                        | yes      | PostgreSQL connection string                                 |
+| `DATABASE_URL`                        | yes      | PostgreSQL connection string used at runtime (pooled)        |
+| `DIRECT_URL`                          | yes      | Unpooled connection used for migrations; same value locally  |
 | `AUTH_SECRET`                         | yes      | Session JWT signing key, 32+ random characters               |
 | `APP_BASE_URL`                        | no       | Absolute base URL used in notification emails                |
 | `APP_BUILD`                           | no       | Build stamp on PDFs; set to the deployed commit sha          |
@@ -114,6 +115,25 @@ npm run db:purge     # delete quote requests past their retention date
 ```
 
 ## Deployment notes
+
+### Supabase + Vercel
+
+1. Create a Supabase project, then open **Connect → ORMs → Prisma** and copy both connection strings.
+2. In Vercel → Settings → Environment Variables set:
+   - `DATABASE_URL` = transaction pooler, port `6543`, with `?pgbouncer=true&connection_limit=1` (serverless functions must use the pooler)
+   - `DIRECT_URL` = direct/session connection, port `5432` (pgbouncer cannot run DDL, so migrations need this)
+   - `AUTH_SECRET`, `APP_BASE_URL`, and `APP_BUILD=$VERCEL_GIT_COMMIT_SHA`
+3. Apply the schema and create the first administrator from your own machine, with both variables exported:
+
+```bash
+npm run db:migrate
+npm run db:seed        # pricing version 2026.3 and its COGS items
+npm run admin:create -- you@infinit.us "Your Name"
+```
+
+Supabase's `anon`/`authenticated` roles and RLS are not used — the app connects as the project's Postgres user and enforces access in the application layer.
+
+### General
 
 - Run `npm run db:migrate` on release and set `APP_BUILD` to the commit sha so PDF stamps identify the build.
 - Schedule `npm run db:purge` (daily is plenty) to honour quote retention.
