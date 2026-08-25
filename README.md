@@ -49,10 +49,10 @@ the fallback (nothing is lost either way).
 
 ### Email
 
-Set `RESEND_API_KEY` (from resend.com → API Keys) and `EMAIL_FROM`. Until a sending domain is verified in
-Resend, `onboarding@resend.dev` is the only usable from-address — and Resend will then only deliver to the
-address that owns the account, so verify `infinit.us` before inviting the wider team. `APP_BASE_URL` must be
-set too, since it builds the links in the emails.
+Set `RESEND_API_KEY` (from resend.com → API Keys) and `EMAIL_FROM`. The from-address must use a domain
+verified in Resend — production sends as `noreply@apps.solutioncraft.ai`; Resend's shared
+`onboarding@resend.dev` only delivers to the address that owns the Resend account, so it is test-only.
+`APP_BASE_URL` must be set too, since it builds the links in the emails.
 
 SMTP (`SMTP_HOST` / `_PORT` / `_USER` / `_PASSWORD` / `_FROM`) still works and is used when
 `RESEND_API_KEY` is unset.

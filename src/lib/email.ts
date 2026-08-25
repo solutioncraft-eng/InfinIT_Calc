@@ -14,7 +14,7 @@ const pass = process.env.SMTP_PASSWORD;
 const from =
   process.env.EMAIL_FROM ??
   process.env.SMTP_FROM ??
-  (resendKey ? "infinIT Calculator <onboarding@resend.dev>" : "InfinIT Calculator <no-reply@infinit.us>");
+  "infinIT Calculator <noreply@apps.solutioncraft.ai>";
 
 export const emailConfigured = Boolean(resendKey || host);
 
