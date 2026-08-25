@@ -24,7 +24,7 @@
   }
 
   .card {
-    @apply rounded-brand border border-mist bg-white;
+    @apply rounded-brand border border-mist bg-white p-6;
   }
 
   .label {

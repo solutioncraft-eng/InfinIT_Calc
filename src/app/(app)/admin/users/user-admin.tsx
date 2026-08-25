@@ -82,79 +82,75 @@ export function UserAdmin({ users }: { users: UserView[] }) {
         <Feedback state={createState} />
       </section>
 
-      <section className="card overflow-x-auto">
+      <section className="card">
         <h2 className="text-[18px]">People</h2>
         <Feedback state={updateState} />
         <Feedback state={resetState} />
         <Feedback state={welcomeState} />
-        <table className="mt-4 w-full text-[14px]">
-          <thead>
-            <tr className="border-b border-navy text-left font-display text-[11px] uppercase tracking-eyebrow text-slate">
-              <th className="py-3">Name</th>
-              <th className="py-3">Email</th>
-              <th className="py-3">Role</th>
-              <th className="py-3">Last sign-in</th>
-              <th className="py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr
-                key={user.id}
-                className={clsx("border-b border-mist last:border-0", !user.active && "text-slate")}
-              >
-                <td className="py-3 font-medium text-navy">
+        <ul className="mt-4 divide-y divide-mist border-t border-navy">
+          {users.map((user) => (
+            <li
+              key={user.id}
+              className={clsx(
+                "flex flex-wrap items-center gap-x-6 gap-y-3 py-4 text-[14px]",
+                !user.active && "text-slate",
+              )}
+            >
+              <div className="min-w-[220px] flex-1">
+                <p className="font-medium text-navy">
                   {user.name}
                   {user.active ? null : (
                     <span className="ml-2 font-mono text-[10px] uppercase text-slate">inactive</span>
                   )}
-                </td>
-                <td className="py-3">{user.email}</td>
-                <td className="py-3">
-                  <form action={updateAction} className="flex items-center gap-2">
-                    <input type="hidden" name="userId" value={user.id} />
-                    <input type="hidden" name="active" value={String(user.active)} />
-                    <select name="role" defaultValue={user.role} className="field w-44 py-1">
-                      {ROLES.map((role) => (
-                        <option key={role.value} value={role.value}>
-                          {role.label}
-                        </option>
-                      ))}
-                    </select>
-                    <button type="submit" className="btn-ghost btn-sm">
-                      Save
-                    </button>
-                  </form>
-                </td>
-                <td className="py-3 font-mono text-[11px] text-slate">
-                  {user.lastLoginAt ? `${user.lastLoginAt.slice(0, 16).replace("T", " ")} UTC` : "never"}
-                </td>
-                <td className="py-3 text-right">
-                  <form action={welcomeAction} className="inline">
-                    <input type="hidden" name="userId" value={user.id} />
-                    <button type="submit" className="btn-ghost btn-sm" disabled={!user.active}>
-                      Resend welcome email
-                    </button>
-                  </form>
-                  <form action={resetAction} className="inline">
-                    <input type="hidden" name="userId" value={user.id} />
-                    <button type="submit" className="btn-ghost btn-sm">
-                      Reset password
-                    </button>
-                  </form>
-                  <form action={updateAction} className="inline">
-                    <input type="hidden" name="userId" value={user.id} />
-                    <input type="hidden" name="role" value={user.role} />
-                    <input type="hidden" name="active" value={String(!user.active)} />
-                    <button type="submit" className="btn-ghost btn-sm text-orange-dark">
-                      {user.active ? "Deactivate" : "Reactivate"}
-                    </button>
-                  </form>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </p>
+                <p className="text-slate">{user.email}</p>
+                <p className="mt-1 font-mono text-[11px] text-slate">
+                  {user.lastLoginAt
+                    ? `Last sign-in ${user.lastLoginAt.slice(0, 16).replace("T", " ")} UTC`
+                    : "Never signed in"}
+                </p>
+              </div>
+
+              <form action={updateAction} className="flex items-center gap-2">
+                <input type="hidden" name="userId" value={user.id} />
+                <input type="hidden" name="active" value={String(user.active)} />
+                <select name="role" defaultValue={user.role} className="field w-44 py-1">
+                  {ROLES.map((role) => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                    </option>
+                  ))}
+                </select>
+                <button type="submit" className="btn-ghost btn-sm">
+                  Save
+                </button>
+              </form>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <form action={welcomeAction}>
+                  <input type="hidden" name="userId" value={user.id} />
+                  <button type="submit" className="btn-ghost btn-sm" disabled={!user.active}>
+                    Resend welcome email
+                  </button>
+                </form>
+                <form action={resetAction}>
+                  <input type="hidden" name="userId" value={user.id} />
+                  <button type="submit" className="btn-ghost btn-sm">
+                    Reset password
+                  </button>
+                </form>
+                <form action={updateAction}>
+                  <input type="hidden" name="userId" value={user.id} />
+                  <input type="hidden" name="role" value={user.role} />
+                  <input type="hidden" name="active" value={String(!user.active)} />
+                  <button type="submit" className="btn-ghost btn-sm text-orange-dark">
+                    {user.active ? "Deactivate" : "Reactivate"}
+                  </button>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
   );
