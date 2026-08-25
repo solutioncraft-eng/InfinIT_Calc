@@ -14,7 +14,8 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:purge": "tsx scripts/purge-expired-quotes.ts",
-    "admin:create": "tsx scripts/create-admin.ts"
+    "admin:create": "tsx scripts/create-admin.ts",
+    "sim:pricing": "esbuild scripts/monte-carlo.mts --bundle --platform=node --format=esm --jsx=automatic --packages=external --log-level=warning --outfile=node_modules/.cache/monte-carlo/run.mjs && node node_modules/.cache/monte-carlo/run.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -39,6 +40,7 @@
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "esbuild": "^0.28.2",
     "eslint": "^9",
     "eslint-config-next": "15.1.6",
     "postcss": "^8",

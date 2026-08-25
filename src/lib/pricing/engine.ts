@@ -279,7 +279,7 @@ export function calculate(config: PricingConfig, inputs: CalcInputs): CalcResult
     inputs,
     bundle,
     multiplier,
-    split: { toolPct, laborPct, sgmPct: Math.round(inputs.sgmPct) },
+    split: { toolPct, laborPct, sgmPct: Math.round(sgm * 100) },
     advantage,
     pinnacle,
     delta: {
