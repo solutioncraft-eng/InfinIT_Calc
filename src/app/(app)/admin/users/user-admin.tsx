@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import clsx from "clsx";
-import { createUser, resetPassword, updateUser, type UserState } from "./actions";
+import { createUser, resendWelcome, resetPassword, updateUser, type UserState } from "./actions";
 
 interface UserView {
   id: string;
@@ -44,6 +44,7 @@ export function UserAdmin({ users }: { users: UserView[] }) {
   const [createState, createAction, creating] = useActionState<UserState, FormData>(createUser, {});
   const [updateState, updateAction] = useActionState<UserState, FormData>(updateUser, {});
   const [resetState, resetAction] = useActionState<UserState, FormData>(resetPassword, {});
+  const [welcomeState, welcomeAction] = useActionState<UserState, FormData>(resendWelcome, {});
 
   return (
     <div className="space-y-6">
@@ -85,6 +86,7 @@ export function UserAdmin({ users }: { users: UserView[] }) {
         <h2 className="text-[18px]">People</h2>
         <Feedback state={updateState} />
         <Feedback state={resetState} />
+        <Feedback state={welcomeState} />
         <table className="mt-4 w-full text-[14px]">
           <thead>
             <tr className="border-b border-navy text-left font-display text-[11px] uppercase tracking-eyebrow text-slate">
@@ -128,6 +130,12 @@ export function UserAdmin({ users }: { users: UserView[] }) {
                   {user.lastLoginAt ? `${user.lastLoginAt.slice(0, 16).replace("T", " ")} UTC` : "never"}
                 </td>
                 <td className="py-3 text-right">
+                  <form action={welcomeAction} className="inline">
+                    <input type="hidden" name="userId" value={user.id} />
+                    <button type="submit" className="btn-ghost btn-sm" disabled={!user.active}>
+                      Resend welcome email
+                    </button>
+                  </form>
                   <form action={resetAction} className="inline">
                     <input type="hidden" name="userId" value={user.id} />
                     <button type="submit" className="btn-ghost btn-sm">

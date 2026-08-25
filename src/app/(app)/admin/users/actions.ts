@@ -113,6 +113,53 @@ export async function updateUser(_prev: UserState, formData: FormData): Promise<
   return { ok: `${user.email} updated.` };
 }
 
+/**
+ * Re-sends the sign-in invite. A temporary password cannot be recovered once
+ * hashed, so the welcome mail carries a freshly issued one.
+ */
+export async function resendWelcome(_prev: UserState, formData: FormData): Promise<UserState> {
+  const admin = await requireRole("ADMIN");
+  const userId = String(formData.get("userId") ?? "");
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return { error: "That user no longer exists." };
+  if (!user.active) return { error: `${user.email} is deactivated — reactivate them first.` };
+
+  const password = tempPassword();
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash: await hashPassword(password), mustReset: true },
+  });
+
+  await audit({
+    action: "WELCOME_EMAIL_RESENT",
+    entity: "User",
+    entityId: user.id,
+    summary: `Welcome email resent to ${user.email} by ${admin.name}`,
+    actor: admin,
+  });
+
+  const mailed = await sendMail({
+    to: [user.email],
+    subject: "Your infinIT Agreement Calculator account",
+    heading: "Your account is ready",
+    lines: [
+      `${admin.name} set up an account for you as ${user.role}.`,
+      `Temporary password: ${password}`,
+      "Change it after your first sign-in.",
+    ],
+    actionLabel: "Sign in",
+    actionUrl: appUrl("/login"),
+  });
+
+  revalidatePath("/admin/users");
+  return mailed
+    ? { ok: `Welcome email resent to ${user.email} with a new temporary password.` }
+    : {
+        ok: `Email is not configured — hand this temporary password to ${user.email} securely.`,
+        tempPassword: password,
+      };
+}
+
 export async function resetPassword(_prev: UserState, formData: FormData): Promise<UserState> {
   const admin = await requireRole("ADMIN");
   const userId = String(formData.get("userId") ?? "");
