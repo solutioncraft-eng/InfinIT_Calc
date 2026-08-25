@@ -11,7 +11,7 @@ import { appUrl, sendMail } from "@/lib/email";
 export interface UserState {
   error?: string;
   ok?: string;
-  /// Shown once, when SMTP is not configured and the admin must hand it over.
+  /// Shown once, when email is not configured and the admin must hand it over.
   tempPassword?: string;
 }
 
