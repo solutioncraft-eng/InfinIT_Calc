@@ -14,7 +14,7 @@ const pass = process.env.SMTP_PASSWORD;
 const from =
   process.env.EMAIL_FROM ??
   process.env.SMTP_FROM ??
-  (resendKey ? "infinIT Calculator <onboarding@resend.dev>" : "InfinIT Calculator <no-reply@infinit.us>");
+  "infinIT Calculator <noreply@apps.solutioncraft.ai>";
 
 export const emailConfigured = Boolean(resendKey || host);
 
@@ -65,12 +65,20 @@ function render(mail: Mail): string {
   </td></tr></table></body></html>`;
 }
 
+/**
+ * Why a send did not happen, so callers can tell an unconfigured mailer apart
+ * from a provider that rejected the message.
+ */
+export type MailResult =
+  | { sent: true }
+  | { sent: false; reason: "unconfigured" | "rejected"; detail?: string };
+
 async function sendWithResend(
   recipients: string[],
   subject: string,
   html: string,
   text: string,
-): Promise<boolean> {
+): Promise<MailResult> {
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -79,26 +87,39 @@ async function sendWithResend(
     },
     body: JSON.stringify({ from, to: recipients, subject, html, text }),
   });
-  if (!response.ok) {
-    console.error("notification email failed", response.status, await response.text());
-    return false;
+  if (response.ok) return { sent: true };
+
+  const body = await response.text();
+  console.error("notification email failed", response.status, body);
+  let detail = `Resend returned ${response.status}.`;
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (parsed && typeof parsed === "object" && typeof (parsed as { message?: unknown }).message === "string") {
+      detail = (parsed as { message: string }).message;
+    }
+  } catch {
+    // Non-JSON error body; the status is all we can report.
   }
-  return true;
+  return { sent: false, reason: "rejected", detail };
 }
 
-export async function sendMail(mail: Mail): Promise<boolean> {
+export async function sendMail(mail: Mail): Promise<MailResult> {
   const recipients = mail.to.filter(Boolean);
-  if (recipients.length === 0) return false;
+  if (recipients.length === 0) return { sent: false, reason: "rejected", detail: "No recipient." };
   const html = render(mail);
   const text = [mail.heading, ...mail.lines, mail.actionUrl ?? ""].join("\n\n");
   try {
     if (resendKey) return await sendWithResend(recipients, mail.subject, html, text);
-    if (!transporter) return false;
+    if (!transporter) return { sent: false, reason: "unconfigured" };
     await transporter.sendMail({ from, to: recipients, subject: mail.subject, html, text });
-    return true;
+    return { sent: true };
   } catch (error) {
     console.error("notification email failed", error);
-    return false;
+    return {
+      sent: false,
+      reason: "rejected",
+      detail: error instanceof Error ? error.message : undefined,
+    };
   }
 }
 
