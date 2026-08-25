@@ -1,26 +1,32 @@
 import nodemailer from "nodemailer";
 
 /**
- * Notification email. SMTP is optional: when it is not configured the app
- * still works and reviewers rely on the in-app review queue, which is why
- * failures here are logged rather than surfaced to the user.
+ * Notification email. Delivery is optional: Resend is used when an API key is
+ * present, otherwise SMTP, and with neither the app still works because
+ * reviewers rely on the in-app review queue. Failures are therefore logged
+ * rather than surfaced to the user.
  */
+const resendKey = process.env.RESEND_API_KEY;
 const host = process.env.SMTP_HOST;
 const port = Number(process.env.SMTP_PORT ?? 587);
 const user = process.env.SMTP_USER;
 const pass = process.env.SMTP_PASSWORD;
-const from = process.env.SMTP_FROM ?? "InfinIT Calculator <no-reply@infinit.us>";
+const from =
+  process.env.EMAIL_FROM ??
+  process.env.SMTP_FROM ??
+  (resendKey ? "infinIT Calculator <onboarding@resend.dev>" : "InfinIT Calculator <no-reply@infinit.us>");
 
-export const emailConfigured = Boolean(host);
+export const emailConfigured = Boolean(resendKey || host);
 
-const transporter = emailConfigured
-  ? nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: user && pass ? { user, pass } : undefined,
-    })
-  : null;
+const transporter =
+  !resendKey && host
+    ? nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: user && pass ? { user, pass } : undefined,
+      })
+    : null;
 
 export interface Mail {
   to: string[];
@@ -59,17 +65,36 @@ function render(mail: Mail): string {
   </td></tr></table></body></html>`;
 }
 
+async function sendWithResend(
+  recipients: string[],
+  subject: string,
+  html: string,
+  text: string,
+): Promise<boolean> {
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${resendKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ from, to: recipients, subject, html, text }),
+  });
+  if (!response.ok) {
+    console.error("notification email failed", response.status, await response.text());
+    return false;
+  }
+  return true;
+}
+
 export async function sendMail(mail: Mail): Promise<boolean> {
   const recipients = mail.to.filter(Boolean);
-  if (!transporter || recipients.length === 0) return false;
+  if (recipients.length === 0) return false;
+  const html = render(mail);
+  const text = [mail.heading, ...mail.lines, mail.actionUrl ?? ""].join("\n\n");
   try {
-    await transporter.sendMail({
-      from,
-      to: recipients,
-      subject: mail.subject,
-      html: render(mail),
-      text: [mail.heading, ...mail.lines, mail.actionUrl ?? ""].join("\n\n"),
-    });
+    if (resendKey) return await sendWithResend(recipients, mail.subject, html, text);
+    if (!transporter) return false;
+    await transporter.sendMail({ from, to: recipients, subject: mail.subject, html, text });
     return true;
   } catch (error) {
     console.error("notification email failed", error);

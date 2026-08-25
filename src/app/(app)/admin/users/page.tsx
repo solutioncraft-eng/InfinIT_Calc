@@ -20,7 +20,7 @@ export default async function UsersPage() {
         </p>
         {emailConfigured ? null : (
           <p className="mt-3 rounded-brand bg-orange-tint/20 px-3 py-2 text-[13px] text-orange-dark">
-            SMTP is not configured, so notifications stay in-app and temporary passwords are shown here once
+            Email is not configured, so notifications stay in-app and temporary passwords are shown here once
             for you to hand over.
           </p>
         )}

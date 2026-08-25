@@ -44,8 +44,18 @@ to be capped at cost, or the Pinnacle add-on multiplier differs from the default
 **cannot be exported** — the AM submits for review, and a leader approves, recommends changes, or denies. Only
 after approval does the export unlock.
 
-Notifications are emailed when SMTP is configured; without it the in-app review queue and badge counts are the
-fallback (nothing is lost either way).
+Notifications are emailed when email is configured; without it the in-app review queue and badge counts are
+the fallback (nothing is lost either way).
+
+### Email
+
+Set `RESEND_API_KEY` (from resend.com → API Keys) and `EMAIL_FROM`. Until a sending domain is verified in
+Resend, `onboarding@resend.dev` is the only usable from-address — and Resend will then only deliver to the
+address that owns the account, so verify `infinit.us` before inviting the wider team. `APP_BASE_URL` must be
+set too, since it builds the links in the emails.
+
+SMTP (`SMTP_HOST` / `_PORT` / `_USER` / `_PASSWORD` / `_FROM`) still works and is used when
+`RESEND_API_KEY` is unset.
 
 ## PDF stamping
 
@@ -85,7 +95,9 @@ The seed prints a temporary administrator password unless `SEED_ADMIN_PASSWORD` 
 | `APP_BASE_URL`                        | no       | Absolute base URL used in notification emails                |
 | `APP_BUILD`                           | no       | Build stamp on PDFs; set to the deployed commit sha          |
 | `SEED_ADMIN_*`                        | no       | Bootstrap administrator, used by `npm run db:seed` only      |
-| `SMTP_HOST` / `_PORT` / `_USER` / `_PASSWORD` / `_FROM` | no | Enables email notifications; omit for in-app only |
+| `RESEND_API_KEY`                      | no       | Enables email notifications through Resend                   |
+| `EMAIL_FROM`                          | no       | From-address for notifications                               |
+| `SMTP_HOST` / `_PORT` / `_USER` / `_PASSWORD` / `_FROM` | no | SMTP fallback, used only when `RESEND_API_KEY` is unset |
 
 ### Scripts
 
