@@ -155,7 +155,13 @@ npm run db:seed        # pricing version 2026.3 and its COGS items
 npm run admin:create -- you@infinit.us "Your Name"
 ```
 
-Supabase's `anon`/`authenticated` roles and RLS are not used — the app connects as the project's Postgres user and enforces access in the application layer.
+Supabase's `anon`/`authenticated` roles are not used — the app connects as the project's Postgres user and
+enforces access in the application layer. Supabase grants those API roles full access to every new table in
+`public` by default, which would expose COGS costs and quote contents to anyone holding the project's
+publishable key, so migration `20260826220000_revoke_api_role_grants` revokes those grants (table level, since
+column-level revokes leave the implying table grant intact), stops the default privileges applying to future
+tables, and enables RLS as a backstop. Verify with
+`SELECT has_column_privilege('anon', 'public."CogsItem"', 'unitCost', 'SELECT');` — it must return false.
 
 ### General
 
