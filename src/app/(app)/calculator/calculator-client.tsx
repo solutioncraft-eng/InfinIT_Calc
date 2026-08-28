@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import clsx from "clsx";
 import {
+  achievedSgmPct,
   calculate,
   money,
   moneyRounded,
@@ -42,6 +43,7 @@ export function CalculatorClient({
     setInputs((prev) => ({ ...prev, [key]: value }));
 
   const selected = tier === "PINNACLE" ? result.pinnacle : result.advantage;
+  const actualSgmPct = achievedSgmPct(selected);
 
   async function runExport(docType: "QUOTE" | "COGS") {
     setExportError(null);
@@ -95,72 +97,74 @@ export function CalculatorClient({
           </section>
 
           <section className="card">
-            <h2 className="text-[18px]">Pricing levers</h2>
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-[18px]">Service gross margin</h2>
+              <span
+                className={clsx(
+                  "font-display text-[18px] font-bold",
+                  inputs.sgmPct === config.defaultSgmPct ? "text-navy" : "text-orange",
+                )}
+              >
+                {inputs.sgmPct}%
+              </span>
+            </div>
+            <input
+              id="sgm"
+              type="range"
+              min={0}
+              max={config.maxSgmPct}
+              step={1}
+              value={inputs.sgmPct}
+              onChange={(e) => set("sgmPct", Number(e.target.value))}
+              className="mt-3 w-full"
+              aria-label="Service gross margin"
+            />
+            <p className="mt-1 text-[12px] text-slate">
+              Default {config.defaultSgmPct}% · derived multiplier {result.multiplier.toFixed(2)}×
+            </p>
+            <p className="mt-2 text-[12px] text-slate">
+              Actual margin at the quoted rate{" "}
+              <span className="font-display font-bold text-navy">{actualSgmPct}%</span>
+            </p>
+          </section>
+
+          <section className="card">
+            <h2 className="text-[18px]">Pricing floors</h2>
             <div className="mt-4 space-y-5">
               <div>
-                <div className="flex items-baseline justify-between">
-                  <label className="label" htmlFor="sgm">
-                    Service gross margin
-                  </label>
-                  <span
-                    className={clsx(
-                      "font-display text-[18px] font-bold",
-                      inputs.sgmPct === config.defaultSgmPct ? "text-navy" : "text-orange",
-                    )}
-                  >
-                    {inputs.sgmPct}%
-                  </span>
-                </div>
+                <label className="label" htmlFor="floor">
+                  Per-user floor
+                </label>
                 <input
-                  id="sgm"
-                  type="range"
+                  id="floor"
+                  type="number"
                   min={0}
-                  max={config.maxSgmPct}
-                  step={1}
-                  value={inputs.sgmPct}
-                  onChange={(e) => set("sgmPct", Number(e.target.value))}
-                  className="mt-2 w-full"
+                  step={5}
+                  value={inputs.perUserFloor}
+                  onChange={(e) => set("perUserFloor", Number(e.target.value))}
+                  className={clsx(
+                    "field mt-1",
+                    inputs.perUserFloor !== config.minPerUserFloor && "field-alert",
+                  )}
                 />
-                <p className="mt-1 text-[12px] text-slate">
-                  Default {config.defaultSgmPct}% · derived multiplier {result.multiplier.toFixed(2)}×
-                </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label" htmlFor="floor">
-                    Per-user floor
-                  </label>
-                  <input
-                    id="floor"
-                    type="number"
-                    min={0}
-                    step={5}
-                    value={inputs.perUserFloor}
-                    onChange={(e) => set("perUserFloor", Number(e.target.value))}
-                    className={clsx(
-                      "field mt-1",
-                      inputs.perUserFloor !== config.minPerUserFloor && "field-alert",
-                    )}
-                  />
-                </div>
-                <div>
-                  <label className="label" htmlFor="addon">
-                    Add-on multiplier
-                  </label>
-                  <input
-                    id="addon"
-                    type="number"
-                    min={1}
-                    step={0.01}
-                    value={inputs.addonMultiplier}
-                    onChange={(e) => set("addonMultiplier", Number(e.target.value))}
-                    className={clsx(
-                      "field mt-1",
-                      inputs.addonMultiplier !== config.addonMultiplier && "field-alert",
-                    )}
-                  />
-                </div>
+              <div>
+                <label className="label" htmlFor="addon">
+                  Add-on multiplier
+                </label>
+                <input
+                  id="addon"
+                  type="number"
+                  min={1}
+                  step={0.01}
+                  value={inputs.addonMultiplier}
+                  onChange={(e) => set("addonMultiplier", Number(e.target.value))}
+                  className={clsx(
+                    "field mt-1",
+                    inputs.addonMultiplier !== config.addonMultiplier && "field-alert",
+                  )}
+                />
               </div>
 
               <label className="flex items-start gap-3 text-[14px]">
@@ -330,6 +334,7 @@ export function CalculatorClient({
                     />
                   ) : null}
                   <Line label="Agreement rate" value={money(selected.headlineRate)} strong />
+                  <Line label="Actual service gross margin" value={`${actualSgmPct}%`} strong />
                 </dl>
 
                 <div className="mt-4 flex gap-1 overflow-hidden rounded-brand text-center font-display text-[11px] font-bold uppercase tracking-eyebrow text-white">

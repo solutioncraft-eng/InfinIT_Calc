@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import type { PricingVersion, QuoteRequest, QuoteReview, User } from "@prisma/client";
-import { calculate, money, moneyRounded } from "@/lib/pricing/engine";
+import { achievedSgmPct, calculate, money, moneyRounded } from "@/lib/pricing/engine";
 import { getConfigForVersion } from "@/lib/pricing/config";
 import { STATUS_CLASS, STATUS_LABEL, TRIGGER_LABEL, formatUtc, quoteInputs, tierName } from "@/lib/quotes";
 
@@ -65,7 +65,7 @@ export async function QuoteDetail({ quote }: { quote: QuoteWithRelations }) {
           <Stat label="Devices" value={String(quote.devices)} />
           <Stat label="Locations" value={String(quote.locations)} />
           <Stat label="Bundle" value={result?.bundle.label ?? quote.bundleKey} />
-          <Stat label="Service gross margin" value={`${quote.sgmPct.toNumber()}%`} />
+          <Stat label="Target service gross margin" value={`${quote.sgmPct.toNumber()}%`} />
           <Stat label="Per-user floor" value={money(quote.perUserFloor.toNumber())} />
           <Stat label="Add-on multiplier" value={`${quote.addonMultiplier.toNumber()}×`} />
           <Stat
@@ -118,6 +118,7 @@ export async function QuoteDetail({ quote }: { quote: QuoteWithRelations }) {
               />
             ) : null}
             <Row label="Agreement rate" value={money(tier.headlineRate)} strong />
+            <Row label="Actual service gross margin" value={`${achievedSgmPct(tier)}%`} strong />
             <Row
               label={`Alternative tier — ${tierName(quote.requestedTier === "PINNACLE" ? "ADVANTAGE" : "PINNACLE")}`}
               value={money(

@@ -147,6 +147,16 @@ export function moneyRounded(n: number): string {
   return "$" + Math.round(n).toLocaleString("en-US");
 }
 
+/**
+ * Service gross margin actually achieved at the rate being quoted, i.e. after
+ * the bundle discount, the discount cap and the per-user floor have moved the
+ * rate away from the SGM the slider asked for.
+ */
+export function achievedSgmPct(tier: TierResult): number {
+  if (tier.headlineRate <= 0) return 0;
+  return round2((1 - tier.costFloor / tier.headlineRate) * 100);
+}
+
 export function calculate(config: PricingConfig, inputs: CalcInputs): CalcResult {
   const sgm = Math.min(Math.max(inputs.sgmPct, 0), config.maxSgmPct) / 100;
   const costMult = 1 + config.laborMultiplier;
