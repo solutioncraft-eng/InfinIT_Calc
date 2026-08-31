@@ -4,6 +4,12 @@ import type { CalcResult, Tier } from "@/lib/pricing/engine";
 import { achievedSgmPct, money, moneyRounded } from "@/lib/pricing/engine";
 import { brand, styles } from "./theme";
 
+export interface ApprovalRecord {
+  by: string;
+  role: string;
+  at: Date;
+}
+
 export interface StampInfo {
   exportId: string;
   exportedAt: Date;
@@ -13,6 +19,9 @@ export interface StampInfo {
   costBasis: string;
   approvalState: string;
   quoteRef?: string | null;
+  approval?: ApprovalRecord | null;
+  /** IANA zone of the exporting user, so dates read in their local time. */
+  timeZone?: string | null;
 }
 
 export type DocType = "QUOTE" | "COGS";
@@ -35,6 +44,39 @@ const UNIT_LABEL: Record<string, string> = {
 
 function utc(d: Date): string {
   return `${d.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+}
+
+/** A date in the exporting user's zone, e.g. "31 Aug 2026, 09:12 PDT". */
+function local(d: Date, timeZone?: string | null): string {
+  return d.toLocaleString("en-US", {
+    timeZone: timeZone ?? "UTC",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+}
+
+function ApprovalTimeline({ stamp }: { stamp: StampInfo }) {
+  if (!stamp.approval) return null;
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>APPROVAL</Text>
+      <View style={styles.timelineRow}>
+        <Text>
+          Approved by {stamp.approval.by} · {stamp.approval.role}
+        </Text>
+        <Text style={styles.rowMuted}>{local(stamp.approval.at, stamp.timeZone)}</Text>
+      </View>
+      {stamp.quoteRef ? (
+        <Text style={[styles.rowMuted, { marginTop: 4, fontSize: 8 }]}>
+          Recorded against quote {stamp.quoteRef} in the approval log.
+        </Text>
+      ) : null}
+    </View>
+  );
 }
 
 function Header({
@@ -112,8 +154,6 @@ export function QuoteDocument({ result, tier, clientName, notes, stamp, logo }: 
   const other = tier === "PINNACLE" ? result.advantage : result.pinnacle;
   const tierName = tier === "PINNACLE" ? "infinIT Pinnacle" : "infinIT Advantage";
   const otherName = tier === "PINNACLE" ? "infinIT Advantage" : "infinIT Pinnacle";
-  const pending = stamp.approvalState !== "APPROVED" && stamp.approvalState !== "STANDARD";
-
   return (
     <Document
       title={`${clientName} — ${tierName} agreement`}
@@ -124,7 +164,6 @@ export function QuoteDocument({ result, tier, clientName, notes, stamp, logo }: 
       keywords={`export:${stamp.exportId} pricing:${stamp.pricingVersion} approval:${stamp.approvalState}`}
     >
       <Page size="LETTER" style={styles.page}>
-        {pending ? <Text style={styles.watermark}>PENDING APPROVAL</Text> : null}
         <Header stamp={stamp} clientName={clientName} title="Managed services agreement" logo={logo} />
         <Text style={styles.confidential}>PROPOSED MONTHLY INVESTMENT · {tierName.toUpperCase()}</Text>
 
@@ -205,6 +244,8 @@ export function QuoteDocument({ result, tier, clientName, notes, stamp, logo }: 
           </Text>
         </View>
 
+        <ApprovalTimeline stamp={stamp} />
+
         <Stamp stamp={stamp} />
       </Page>
     </Document>
@@ -215,6 +256,7 @@ export function CogsDocument({ result, tier, clientName, notes, stamp, logo }: D
   const t = tier === "PINNACLE" ? result.pinnacle : result.advantage;
   const tierName = tier === "PINNACLE" ? "infinIT Pinnacle" : "infinIT Advantage";
   const lines = tier === "PINNACLE" ? [...result.advantage.lines, ...result.pinnacle.lines] : result.advantage.lines;
+  const pending = !stamp.approval && stamp.approvalState !== "STANDARD";
 
   return (
     <Document
@@ -226,6 +268,7 @@ export function CogsDocument({ result, tier, clientName, notes, stamp, logo }: D
       keywords={`export:${stamp.exportId} pricing:${stamp.pricingVersion} approval:${stamp.approvalState}`}
     >
       <Page size="LETTER" style={styles.page}>
+        {pending ? <Text style={styles.watermark}>APPROVAL REQUIRED</Text> : null}
         <Header stamp={stamp} clientName={clientName} title="Internal COGS worksheet" logo={logo} />
         <Text style={styles.confidential}>
           INTERNAL ONLY · DO NOT SEND TO CLIENT · CONTAINS TOOL COST AND MARGIN
@@ -334,6 +377,8 @@ export function CogsDocument({ result, tier, clientName, notes, stamp, logo }: D
             <Text style={styles.notes}>{notes}</Text>
           </View>
         ) : null}
+
+        <ApprovalTimeline stamp={stamp} />
 
         <Stamp stamp={stamp} />
       </Page>
