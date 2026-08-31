@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { calculate, type CalcInputs } from "@/lib/pricing/engine";
 import { getActiveConfig, getConfigForVersion } from "@/lib/pricing/config";
-import { buildDocument, type StampInfo } from "@/lib/pdf/documents";
+import { buildDocument, type ApprovalRecord, type StampInfo } from "@/lib/pdf/documents";
 import { brandLogo, newExportId, renderPdf } from "@/lib/pdf/render";
 import { exportPayloadSchema } from "@/lib/schemas";
 import { APP_VERSION_STAMP } from "@/lib/version";
@@ -39,9 +39,20 @@ export async function POST(request: Request) {
   let quoteRef: string | null = null;
   let clientName = payload.clientName;
   let notes = payload.notes || null;
+  let approval: ApprovalRecord | null = null;
 
   if (quoteId) {
-    const quote = await prisma.quoteRequest.findUnique({ where: { id: quoteId } });
+    const quote = await prisma.quoteRequest.findUnique({
+      where: { id: quoteId },
+      include: {
+        reviews: {
+          where: { action: "APPROVED" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: { actor: { select: { name: true, role: true } } },
+        },
+      },
+    });
     if (!quote) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
     if (quote.submittedById !== user.id && user.role === "AM") {
       return NextResponse.json({ error: "Not your quote" }, { status: 403 });
@@ -74,6 +85,10 @@ export async function POST(request: Request) {
     quoteRef = quote.ref;
     clientName = quote.clientName;
     notes = quote.notes;
+    const decision = quote.reviews[0];
+    if (decision) {
+      approval = { by: decision.actor.name, role: decision.actor.role, at: decision.createdAt };
+    }
   } else {
     if (!payload.inputs) return NextResponse.json({ error: "Missing calculator inputs" }, { status: 400 });
     inputs = payload.inputs;
@@ -109,6 +124,8 @@ export async function POST(request: Request) {
     costBasis: config.costBasis,
     approvalState,
     quoteRef,
+    approval,
+    timeZone: payload.timeZone ?? null,
   };
 
   const logo = await brandLogo();
